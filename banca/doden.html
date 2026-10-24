@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đấu Trường Đỏ Đen - All-In High Stakes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Chakra+Petch:wght@500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-color: #05020a;
+            font-family: 'Chakra Petch', sans-serif;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .led-font {
+            font-family: 'Orbitron', monospace;
+        }
+
+        @keyframes pulseGlowRed {
+            0%, 100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.45), inset 0 0 15px rgba(244, 63, 94, 0.25); }
+            50% { box-shadow: 0 0 32px rgba(244, 63, 94, 0.85), inset 0 0 25px rgba(244, 63, 94, 0.45); }
+        }
+
+        @keyframes pulseGlowGold {
+            0%, 100% { box-shadow: 0 0 18px rgba(250, 204, 21, 0.5), inset 0 0 15px rgba(250, 204, 21, 0.25); }
+            50% { box-shadow: 0 0 40px rgba(250, 204, 21, 0.95), inset 0 0 28px rgba(250, 204, 21, 0.55); }
+        }
+
+        .all-in-btn {
+            animation: pulseGlowRed 1.4s infinite ease-in-out;
+        }
+
+        .win-strobe {
+            animation: pulseGlowGold 0.5s infinite ease-in-out;
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #090414; }
+        ::-webkit-scrollbar-thumb { background: #3b0764; border-radius: 4px; }
+    </style>
+</head>
+<body class="relative w-screen min-h-screen flex flex-col justify-between bg-gradient-to-b from-[#0b0316] via-[#05020a] to-[#020105]">
+
+    <!-- Fullscreen FX Canvas for Coin Rain, Fireworks & Win/Lose Modals -->
+    <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-40"></canvas>
+
+    <!-- TOP BAR: Navigation & Streak History -->
+    <header class="relative z-20 flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-slate-950/90 border-b border-amber-500/30 backdrop-blur-md">
+        <div class="flex items-center gap-2">
+            <button id="backLobbyBtn" class="bg-slate-900 hover:bg-slate-800 border border-cyan-400/60 text-cyan-300 text-xs md:text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5">
+                🏠 SẢNH CHỜ
+            </button>
+            <button id="goBanCaBtn" class="bg-gradient-to-r from-cyan-700 to-blue-900 hover:from-cyan-600 hover:to-blue-800 border border-cyan-300/60 text-white text-xs md:text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5">
+                🐟 SẢNH BẮN CÁ
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2 bg-slate-900/90 border border-purple-500/40 px-3 py-1 rounded-xl shadow-inner">
+            <span class="text-[11px] font-extrabold text-purple-300 uppercase tracking-wider">🔥 CẦU GẦN ĐÂY:</span>
+            <div id="streakContainer" class="flex items-center gap-1.5"></div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="soundBtn" class="bg-slate-900 hover:bg-slate-800 border border-amber-400/50 text-amber-300 text-xs md:text-sm font-bold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95">
+                🔊 ÂM THANH: <span id="soundText">BẬT</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN ARENA: Sắp xếp lại bố cục 3 cột cân đối, vòng quay lớn ở giữa -->
+    <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-4 md:p-6 items-center max-w-7xl w-full mx-auto">
+
+        <!-- LEFT COLUMN (4 cols): Shared Wallet & Bet Controls -->
+        <div class="lg:col-span-4 flex flex-col gap-4 order-2 lg:order-1">
+            <!-- LED Shared Wallet Box -->
+            <div id="walletCard" class="relative bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 border-amber-400 rounded-2xl p-4 shadow-2xl transition-transform duration-150">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-[11px] font-extrabold text-emerald-400 tracking-wider flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            VÍ XU ĐỒNG BỘ TOÀN SẢNH
+                        </div>
+                        <div id="walletCoinsText" class="led-font text-2xl md:text-3xl font-black text-amber-300 mt-1 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                            2.500
+                        </div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300 via-amber-500 to-amber-700 border-2 border-yellow-100 flex items-center justify-center shadow-lg">
+                        <span class="led-font font-black text-slate-950 text-lg">XU</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <button id="freeRechargeBtn" class="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border border-emerald-300 text-white text-xs font-extrabold py-2 px-2 rounded-xl shadow-md transition active:scale-95">
+                        🎁 +1.000 XU FREE
+                    </button>
+                    <button id="bailoutBtn" class="bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 border border-amber-300 text-white text-xs font-extrabold py-2 px-2 rounded-xl shadow-md transition active:scale-95">
+                        🚑 CỨU TRỢ +2.000 XU
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bet Sizing & All-In Panel -->
+            <div class="bg-slate-950/90 border border-rose-500/40 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-slate-300 uppercase tracking-wider">💰 TIỀN CƯỢC VÁN NÀY:</span>
+                    <span id="betPctBadge" class="text-xs font-black px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">ALL-IN SẴN SÀNG</span>
+                </div>
+
+                <div class="flex items-center justify-between bg-black/80 border-2 border-slate-700 rounded-xl px-3.5 py-2">
+                    <span id="currentBetText" class="led-font text-2xl font-black text-rose-400">500</span>
+                    <button id="clearBetBtn" class="text-xs font-bold text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded-lg transition">
+                        Đặt Lại
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button data-bet="add-100" class="bet-chip bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-bold text-xs py-2 rounded-lg transition active:scale-95">+100</button>
+                    <button data-bet="add-500" class="bet-chip bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-bold text-xs py-2 rounded-lg transition active:scale-95">+500</button>
+                    <button data-bet="half" class="bet-chip bg-slate-900 hover:bg-slate-800 border border-amber-500/50 text-amber-300 font-extrabold text-xs py-2 rounded-lg transition active:scale-95">50% VÍ</button>
+                    <button data-bet="double" class="bet-chip bg-slate-900 hover:bg-slate-800 border border-purple-500/50 text-purple-300 font-extrabold text-xs py-2 rounded-lg transition active:scale-95">X2 CƯỢC</button>
+                </div>
+
+                <button id="allInBtn" class="all-in-btn w-full bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 border-2 border-amber-300 text-white font-black text-base md:text-lg py-3 rounded-xl shadow-2xl transition transform active:scale-95 flex items-center justify-center gap-2 tracking-wider">
+                    🔥 TẤT TAY ALL-IN (100% VÍ XU) 🔥
+                </button>
+            </div>
+        </div>
+
+        <!-- CENTER COLUMN (4 cols): Vòng Quay To Hơn Ở Giữa -->
+        <div class="lg:col-span-4 flex flex-col items-center justify-center order-1 lg:order-2 relative">
+            <div class="relative flex items-center justify-center my-2">
+                <!-- Top Indicator Pointer -->
+                <div class="absolute -top-5 z-30 flex flex-col items-center pointer-events-none">
+                    <div class="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-amber-400 drop-shadow-[0_4px_12px_rgba(250,204,21,0.95)]"></div>
+                </div>
+
+                <!-- Vòng quay phóng to rõ ràng hơn (400px trên desktop) -->
+                <canvas id="wheelCanvas" width="400" height="400" class="w-[330px] h-[330px] md:w-[400px] md:h-[400px] rounded-full shadow-[0_0_60px_rgba(225,29,72,0.4)]"></canvas>
+            </div>
+
+            <div id="resultPromptBox" class="mt-2 w-full max-w-sm bg-slate-950/90 border border-slate-800 rounded-xl px-4 py-2.5 text-center shadow-lg">
+                <div id="resultMainText" class="text-sm md:text-base font-extrabold text-amber-300">
+                    CHỌN CỬA ĐẶT CƯỢC HOẶC TẤT TAY ĐỂ QUAY!
+                </div>
+                <div id="resultSubText" class="text-xs text-slate-400 mt-0.5">
+                    Liều ăn nhiều — Lật bài quyết định vận mệnh!
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN (4 cols): Chọn Cửa & Nút Quay Phán Quyết -->
+        <div class="lg:col-span-4 flex flex-col gap-3 order-3">
+            <div class="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-amber-300 uppercase tracking-wider">🎯 CHỌN CỬA ĐẶT CƯỢC:</span>
+                    <span id="selectedGateBadge" class="text-xs font-black text-rose-400">ĐANG CHỌN: CỬA ĐỎ</span>
+                </div>
+
+                <!-- 1. RED GATE -->
+                <button data-gate="RED" class="gate-btn group relative overflow-hidden bg-gradient-to-r from-rose-950 via-red-900 to-rose-950 border-2 border-rose-400 rounded-2xl p-3 text-left transition transform active:scale-98 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-red-700 border border-rose-200 flex items-center justify-center text-xl shadow-md">
+                                🔴
+                            </div>
+                            <div>
+                                <div class="text-sm md:text-base font-black text-white">CỬA ĐỎ HUYẾT LONG</div>
+                                <div class="text-[11px] text-rose-200/80 font-semibold">Thưởng <span class="text-amber-300 font-black">x2.2 lần</span></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="led-font text-lg font-black text-amber-300">x2.2</span>
+                            <div id="redPotentialWin" class="text-[10px] text-emerald-300 font-bold">+1.100 XU</div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- 2. BLACK GATE -->
+                <button data-gate="BLACK" class="gate-btn group relative overflow-hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-950 border-2 border-slate-600 rounded-2xl p-3 text-left transition transform active:scale-98 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-950 border border-cyan-400/50 flex items-center justify-center text-xl shadow-md">
+                                ⚫
+                            </div>
+                            <div>
+                                <div class="text-sm md:text-base font-black text-white">CỬA ĐEN HẮC ÁM</div>
+                                <div class="text-[11px] text-slate-300 font-semibold">Thưởng <span class="text-amber-300 font-black">x2.2 lần</span></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="led-font text-lg font-black text-cyan-300">x2.2</span>
+                            <div id="blackPotentialWin" class="text-[10px] text-emerald-300 font-bold">+1.100 XU</div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- 3. GOLD JACKPOT GATE -->
+                <button data-gate="GOLD" class="gate-btn group relative overflow-hidden bg-gradient-to-r from-amber-950 via-yellow-900/80 to-amber-950 border-2 border-amber-500/40 rounded-2xl p-3 text-left transition transform active:scale-98 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-300 via-amber-500 to-orange-600 border border-yellow-100 flex items-center justify-center text-xl shadow-md">
+                                👑
+                            </div>
+                            <div>
+                                <div class="text-sm md:text-base font-black text-amber-300">NỔ HŨ HOÀNG KIM</div>
+                                <div class="text-[11px] text-amber-200/80 font-semibold">Nổ gấp <span class="text-yellow-300 font-black">x10 lần</span></div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="led-font text-lg font-black text-yellow-300">x10</span>
+                            <div id="goldPotentialWin" class="text-[10px] text-emerald-300 font-bold">+5.000 XU</div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- MAIN SPIN BUTTON -->
+                <button id="spinBtn" class="mt-2 w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 border-2 border-yellow-100 text-slate-950 font-black text-lg md:text-xl py-3.5 rounded-2xl shadow-[0_0_25px_rgba(250,204,21,0.5)] transition transform active:scale-95 led-font tracking-wider">
+                    ⚡ QUAY PHÁN QUYẾT NGAY ⚡
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- WIN DOPAMINE MODAL OVERLAY -->
+    <div id="winOverlay" class="fixed inset-0 z-50 pointer-events-none hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="win-strobe pointer-events-auto bg-gradient-to-b from-amber-900/95 via-red-950/95 to-slate-950 border-4 border-yellow-300 rounded-3xl px-8 py-6 text-center shadow-[0_0_90px_rgba(250,204,21,0.95)] max-w-md mx-4">
+            <div class="text-xs md:text-sm font-black tracking-[0.2em] text-yellow-200 uppercase animate-bounce">
+                🎆 THẮNG CỰC ĐẬM 🎆
+            </div>
+            <div id="winOverlayTitle" class="text-2xl md:text-3xl font-black text-white mt-1">HÚP TRỌN CỬA ĐỎ!</div>
+            <div id="winOverlayAmount" class="led-font text-4xl md:text-5xl font-black text-yellow-300 my-3">+5.500 XU</div>
+            <button id="continueWinBtn" class="w-full bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-slate-950 font-black text-base py-2.5 rounded-xl border-2 border-white shadow-xl active:scale-95 transition">
+                🔥 HỐT BẠC & QUAY TIẾP 🔥
+            </button>
+        </div>
+    </div>
+
+    <!-- LOSE POPUP NOTIFICATION MODAL (Hiệu ứng thông báo khi THUA) -->
+    <div id="loseOverlay" class="fixed inset-0 z-50 pointer-events-none hidden items-center justify-center bg-black/75 backdrop-blur-sm">
+        <div class="pointer-events-auto bg-gradient-to-b from-slate-950 via-red-950/90 to-black border-4 border-rose-600 rounded-3xl px-8 py-6 text-center shadow-[0_0_80px_rgba(225,29,72,0.8)] max-w-md mx-4 animate-pulse">
+            <div class="text-xs md:text-sm font-black tracking-[0.2em] text-rose-400 uppercase">
+                💀 CHÁY TÚI / MẤT TRẮNG 💀
+            </div>
+            <div class="text-2xl md:text-3xl font-black text-white mt-1">THƯA CẢM LẠI VÁN MỚI!</div>
+            <div id="loseOverlayAmount" class="led-font text-3xl md:text-4xl font-black text-rose-500 my-3">-500 XU</div>
+            <div id="loseTauntText" class="text-xs text-slate-300 font-bold mb-4">
+                Chệch sát vạch! Làm lại ngay ván All-In gỡ gạc gấp đôi!
+            </div>
+            <button id="continueLoseBtn" class="w-full bg-gradient-to-r from-rose-600 via-red-600 to-orange-600 text-white font-black text-base py-2.5 rounded-xl border-2 border-rose-300 shadow-xl active:scale-95 transition">
+                ⚡ GỠ LẠI NGAY LẬP TỨC ⚡
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const WALLET_KEY = 'ARCADE_WALLET_COINS';
+        const DEFAULT_WALLET_COINS = 2500;
+        const walletChannel = ('BroadcastChannel' in window) ? new BroadcastChannel('ARCADE_WALLET_SYNC') : null;
+
+        let walletCoins = DEFAULT_WALLET_COINS;
+        let currentBet = 500;
+        let selectedGate = 'RED';
+        let isSpinning = false;
+        let consecutiveLosses = 0;
+        let consecutiveWins = 0;
+
+        const walletCoinsTextEl = document.getElementById('walletCoinsText');
+        const walletCardEl = document.getElementById('walletCard');
+        const currentBetTextEl = document.getElementById('currentBetText');
+        const betPctBadgeEl = document.getElementById('betPctBadge');
+        const selectedGateBadgeEl = document.getElementById('selectedGateBadge');
+        const redPotentialWinEl = document.getElementById('redPotentialWin');
+        const blackPotentialWinEl = document.getElementById('blackPotentialWin');
+        const goldPotentialWinEl = document.getElementById('goldPotentialWin');
+        const resultPromptBoxEl = document.getElementById('resultPromptBox');
+        const resultMainTextEl = document.getElementById('resultMainText');
+        const resultSubTextEl = document.getElementById('resultSubText');
+        const streakContainerEl = document.getElementById('streakContainer');
+        const winOverlayEl = document.getElementById('winOverlay');
+        const winOverlayTitleEl = document.getElementById('winOverlayTitle');
+        const winOverlayAmountEl = document.getElementById('winOverlayAmount');
+        
+        // Lose Modal Elements
+        const loseOverlayEl = document.getElementById('loseOverlay');
+        const loseOverlayAmountEl = document.getElementById('loseOverlayAmount');
+        const loseTauntTextEl = document.getElementById('loseTauntText');
+
+        function loadWallet() {
+            try {
+                const raw = localStorage.getItem(WALLET_KEY);
+                if (raw === null || isNaN(parseInt(raw, 10))) {
+                    localStorage.setItem(WALLET_KEY, String(DEFAULT_WALLET_COINS));
+                    return DEFAULT_WALLET_COINS;
+                }
+                return Math.max(0, parseInt(raw, 10));
+            } catch (e) {
+                return DEFAULT_WALLET_COINS;
+            }
+        }
+
+        function saveWallet(newAmount, broadcast = true) {
+            walletCoins = Math.max(0, Math.round(newAmount));
+            try {
+                localStorage.setItem(WALLET_KEY, String(walletCoins));
+                if (broadcast && walletChannel) {
+                    walletChannel.postMessage({ type: 'WALLET_UPDATE', coins: walletCoins, source: 'doden' });
+                }
+            } catch (e) {}
+            updateWalletAndBetUI();
+        }
+
+        function updateWalletAndBetUI() {
+            walletCoinsTextEl.textContent = walletCoins.toLocaleString('vi-VN');
+            if (walletCoins > 0 && currentBet > walletCoins) currentBet = walletCoins;
+            if (walletCoins > 0 && currentBet <= 0) currentBet = Math.min(walletCoins, 500);
+
+            currentBetTextEl.textContent = currentBet.toLocaleString('vi-VN');
+
+            const pct = walletCoins > 0 ? Math.round((currentBet / walletCoins) * 100) : 0;
+            if (pct >= 100 && walletCoins > 0) {
+                betPctBadgeEl.textContent = '🔥 ALL-IN 100% VÍ!';
+                betPctBadgeEl.className = 'text-xs font-black px-2 py-0.5 rounded bg-rose-600 text-white border border-amber-300 animate-pulse';
+            } else {
+                betPctBadgeEl.textContent = `CƯỢC ${pct}% VÍ`;
+                betPctBadgeEl.className = 'text-xs font-black px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40';
+            }
+
+            redPotentialWinEl.textContent = `+${Math.round(currentBet * 2.2).toLocaleString('vi-VN')} XU`;
+            blackPotentialWinEl.textContent = `+${Math.round(currentBet * 2.2).toLocaleString('vi-VN')} XU`;
+            goldPotentialWinEl.textContent = `+${Math.round(currentBet * 10).toLocaleString('vi-VN')} XU`;
+        }
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === WALLET_KEY && e.newValue !== null) {
+                const val = parseInt(e.newValue, 10);
+                if (!isNaN(val)) {
+                    walletCoins = Math.max(0, val);
+                    updateWalletAndBetUI();
+                }
+            }
+        });
+
+        if (walletChannel) {
+            walletChannel.onmessage = (e) => {
+                if (e.data && e.data.type === 'WALLET_UPDATE' && typeof e.data.coins === 'number') {
+                    walletCoins = Math.max(0, Math.round(e.data.coins));
+                    updateWalletAndBetUI();
+                }
+            };
+        }
+
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            }
+            playTick(pitchFactor = 1) {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(520 * pitchFactor, now);
+                    osc.frequency.exponentialRampToValueAtTime(160, now + 0.03);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.03);
+                } catch (e) {}
+            }
+            playAllInSiren() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(320, now);
+                    osc.frequency.linearRampToValueAtTime(780, now + 0.18);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                } catch (e) {}
+            }
+            playWinJackpot() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98, 2093.0];
+                    notes.forEach((freq, idx) => {
+                        const now = this.ctx.currentTime + idx * 0.065;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now);
+                        gain.gain.setValueAtTime(0.18, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.45);
+                    });
+                } catch (e) {}
+            }
+            playCoinCollect() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1174.66, now);
+                    osc.frequency.setValueAtTime(1567.98, now + 0.04);
+                    gain.gain.setValueAtTime(0.06, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } catch (e) {}
+            }
+            // Hiệu ứng âm thanh khi thua: Hú trầm cảnh báo
+            playLoseSound() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(45, now + 0.35);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.38);
+                } catch (e) {}
+            }
+        }
+
+        const sound = new SoundManager();
+
+        const wheelCanvas = document.getElementById('wheelCanvas');
+        const wCtx = wheelCanvas.getContext('2d');
+
+        const WHEEL_SEGMENTS = [];
+        for (let i = 0; i < 24; i++) {
+            if (i === 0 || i === 12) {
+                WHEEL_SEGMENTS.push({ type: 'GOLD', label: 'x10', color: '#facc15', border: '#fef08a' });
+            } else if (i % 2 === 1) {
+                WHEEL_SEGMENTS.push({ type: 'RED', label: 'ĐỎ', color: '#e11d48', border: '#fda4af' });
+            } else {
+                WHEEL_SEGMENTS.push({ type: 'BLACK', label: 'ĐEN', color: '#0f172a', border: '#38bdf8' });
+            }
+        }
+
+        const SLICE_ANGLE = (Math.PI * 2) / WHEEL_SEGMENTS.length;
+        let wheelAngle = 0;
+        let lastTickIndex = -1;
+        const streakHistory = ['RED', 'BLACK', 'RED', 'RED', 'BLACK', 'GOLD', 'RED', 'BLACK', 'BLACK', 'RED'];
+
+        function renderStreakHistory() {
+            streakContainerEl.innerHTML = '';
+            streakHistory.slice(-10).forEach((item, idx, arr) => {
+                const dot = document.createElement('div');
+                const isLatest = idx === arr.length - 1;
+                if (item === 'RED') {
+                    dot.className = `w-5 h-5 rounded-full bg-rose-600 border border-rose-300 flex items-center justify-center text-[10px] font-black text-white ${isLatest ? 'ring-2 ring-amber-300 scale-110' : 'opacity-80'}`;
+                    dot.textContent = 'Đ';
+                } else if (item === 'BLACK') {
+                    dot.className = `w-5 h-5 rounded-full bg-slate-900 border border-cyan-400 flex items-center justify-center text-[10px] font-black text-cyan-300 ${isLatest ? 'ring-2 ring-amber-300 scale-110' : 'opacity-80'}`;
+                    dot.textContent = 'Đ';
+                } else {
+                    dot.className = `w-5 h-5 rounded-full bg-amber-400 border border-white flex items-center justify-center text-[10px] font-black text-slate-950 ${isLatest ? 'ring-2 ring-white scale-110' : 'opacity-90'}`;
+                    dot.textContent = '👑';
+                }
+                streakContainerEl.appendChild(dot);
+            });
+        }
+
+        function drawWheel(highlightWin = false) {
+            const w = wheelCanvas.width;
+            const h = wheelCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const outerR = w / 2 - 12;
+
+            wCtx.clearRect(0, 0, w, h);
+
+            wCtx.save();
+            wCtx.beginPath();
+            wCtx.arc(cx, cy, outerR + 8, 0, Math.PI * 2);
+            wCtx.fillStyle = highlightWin ? '#fef08a' : '#eab308';
+            wCtx.fill();
+
+            wCtx.beginPath();
+            wCtx.arc(cx, cy, outerR + 3, 0, Math.PI * 2);
+            wCtx.fillStyle = '#090414';
+            wCtx.fill();
+            wCtx.restore();
+
+            wCtx.save();
+            wCtx.translate(cx, cy);
+            wCtx.rotate(wheelAngle);
+
+            for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
+                const seg = WHEEL_SEGMENTS[i];
+                const startA = i * SLICE_ANGLE;
+                const endA = startA + SLICE_ANGLE;
+
+                wCtx.beginPath();
+                wCtx.moveTo(0, 0);
+                wCtx.arc(0, 0, outerR, startA, endA);
+                wCtx.closePath();
+
+                wCtx.fillStyle = seg.color;
+                wCtx.fill();
+                wCtx.lineWidth = 1.5;
+                wCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                wCtx.stroke();
+
+                wCtx.save();
+                wCtx.rotate(startA + SLICE_ANGLE / 2);
+                wCtx.textAlign = 'right';
+                wCtx.textBaseline = 'middle';
+                wCtx.fillStyle = seg.type === 'GOLD' ? '#020617' : '#ffffff';
+                wCtx.font = '900 13px Orbitron, sans-serif';
+                wCtx.fillText(seg.label, outerR - 16, 0);
+                wCtx.restore();
+            }
+
+            for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
+                const a = i * SLICE_ANGLE;
+                wCtx.fillStyle = '#fef08a';
+                wCtx.beginPath();
+                wCtx.arc(Math.cos(a) * (outerR - 4), Math.sin(a) * (outerR - 4), 3, 0, Math.PI * 2);
+                wCtx.fill();
+            }
+
+            wCtx.restore();
+
+            wCtx.save();
+            wCtx.translate(cx, cy);
+            wCtx.beginPath();
+            wCtx.arc(0, 0, 56, 0, Math.PI * 2);
+            wCtx.fillStyle = '#090414';
+            wCtx.fill();
+            wCtx.lineWidth = 4;
+            wCtx.strokeStyle = selectedGate === 'RED' ? '#f43f5e' : (selectedGate === 'BLACK' ? '#38bdf8' : '#facc15');
+            wCtx.stroke();
+
+            wCtx.fillStyle = '#ffffff';
+            wCtx.font = '900 15px Orbitron, sans-serif';
+            wCtx.textAlign = 'center';
+            wCtx.textBaseline = 'middle';
+            wCtx.fillText(isSpinning ? 'QUAY...' : 'ALL-IN', 0, -7);
+
+            wCtx.fillStyle = '#facc15';
+            wCtx.font = '700 11px Chakra Petch, sans-serif';
+            wCtx.fillText(selectedGate === 'RED' ? 'CỬA ĐỎ' : (selectedGate === 'BLACK' ? 'CỬA ĐEN' : 'HOÀNG KIM'), 0, 11);
+            wCtx.restore();
+        }
+
+        function decideSpinOutcome(chosenGate) {
+            const r = Math.random();
+            let isWin = false;
+            const pityBoost = consecutiveLosses >= 3 ? 0.14 : 0;
+
+            if (chosenGate === 'GOLD') {
+                isWin = r < (0.11 + pityBoost * 0.5);
+            } else {
+                isWin = r < (0.37 + pityBoost);
+            }
+
+            const matchingIndices = [];
+            const losingNearMissIndices = [];
+
+            for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
+                if (WHEEL_SEGMENTS[i].type === chosenGate) {
+                    matchingIndices.push(i);
+                } else {
+                    const prev = (i - 1 + WHEEL_SEGMENTS.length) % WHEEL_SEGMENTS.length;
+                    const next = (i + 1) % WHEEL_SEGMENTS.length;
+                    if (WHEEL_SEGMENTS[prev].type === chosenGate || WHEEL_SEGMENTS[next].type === chosenGate) {
+                        losingNearMissIndices.push(i);
+                    }
+                }
+            }
+
+            let targetIndex = 0;
+            let subSliceOffset = 0.5;
+
+            if (isWin) {
+                targetIndex = matchingIndices[Math.floor(Math.random() * matchingIndices.length)];
+                subSliceOffset = 0.35 + Math.random() * 0.3;
+            } else {
+                targetIndex = losingNearMissIndices[Math.floor(Math.random() * losingNearMissIndices.length)];
+                const next = (targetIndex + 1) % WHEEL_SEGMENTS.length;
+                if (WHEEL_SEGMENTS[next].type === chosenGate) subSliceOffset = 0.86;
+                else subSliceOffset = 0.14;
+            }
+
+            return { isWin, targetIndex, landedType: WHEEL_SEGMENTS[targetIndex].type, subSliceOffset };
+        }
+
+        const fxCanvas = document.getElementById('fxCanvas');
+        const fxCtx = fxCanvas.getContext('2d');
+        const fxCoins = [];
+        const fxParticles = [];
+        let winRaysAlpha = 0;
+        let winRaysAngle = 0;
+
+        function resizeFxCanvas() {
+            fxCanvas.width = window.innerWidth;
+            fxCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeFxCanvas);
+        resizeFxCanvas();
+
+        function triggerMassiveWinEffects(winAmount, landedType) {
+            sound.playWinJackpot();
+            winRaysAlpha = 1.0;
+
+            winOverlayTitleEl.textContent = landedType === 'GOLD'
+                ? '👑 NỔ HŨ HOÀNG KIM X10! 👑'
+                : (landedType === 'RED' ? '🔴 HÚP TRỌN CỬA ĐỎ X2.2! 🔴' : '⚫ HÚP TRỌN CỬA ĐEN X2.2! ⚫');
+            winOverlayAmountEl.textContent = `+${winAmount.toLocaleString('vi-VN')} XU`;
+            winOverlayEl.classList.remove('hidden');
+            winOverlayEl.classList.add('flex');
+
+            const walletRect = walletCardEl.getBoundingClientRect();
+            const targetX = walletRect.left + walletRect.width / 2;
+            const targetY = walletRect.top + walletRect.height / 2;
+
+            for (let i = 0; i < 85; i++) {
+                const startX = window.innerWidth / 2 + (Math.random() - 0.5) * 360;
+                const startY = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+                fxCoins.push({
+                    startX, startY,
+                    cpX: (startX + targetX) / 2 + (Math.random() - 0.5) * 420,
+                    cpY: Math.min(startY, targetY) - 120 - Math.random() * 240,
+                    targetX, targetY,
+                    t: 0, speed: 0.014 + Math.random() * 0.012,
+                    delay: Math.floor(i * 0.6),
+                    spin: Math.random() * Math.PI * 2,
+                    r: 10 + Math.random() * 5
+                });
+            }
+
+            for (let i = 0; i < 90; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const spd = 3 + Math.random() * 11;
+                const colors = ['#facc15', '#fef08a', '#f43f5e', '#38bdf8', '#4ade80'];
+                fxParticles.push({
+                    x: window.innerWidth / 2, y: window.innerHeight / 2,
+                    vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+                    r: 2.5 + Math.random() * 4,
+                    color: colors[i % colors.length],
+                    alpha: 1, decay: 0.014 + Math.random() * 0.015
+                });
+            }
+        }
+
+        function triggerLoseEffects(betAmount) {
+            sound.playLoseSound();
+            loseOverlayAmountEl.textContent = `-${betAmount.toLocaleString('vi-VN')} XU`;
+            loseOverlayEl.classList.remove('hidden');
+            loseOverlayEl.classList.add('flex');
+        }
+
+        function animateFxLoop() {
+            fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+
+            if (winRaysAlpha > 0.01) {
+                winRaysAlpha *= 0.988;
+                winRaysAngle += 0.012;
+                fxCtx.save();
+                fxCtx.translate(fxCanvas.width / 2, fxCanvas.height / 2);
+                fxCtx.rotate(winRaysAngle);
+                fxCtx.globalAlpha = winRaysAlpha * 0.35;
+                for (let r = 0; r < 16; r++) {
+                    fxCtx.rotate((Math.PI * 2) / 16);
+                    fxCtx.fillStyle = r % 2 === 0 ? '#facc15' : '#f43f5e';
+                    fxCtx.beginPath();
+                    fxCtx.moveTo(0, 0);
+                    fxCtx.lineTo(-45, -Math.max(fxCanvas.width, fxCanvas.height));
+                    fxCtx.lineTo(45, -Math.max(fxCanvas.width, fxCanvas.height));
+                    fxCtx.closePath();
+                    fxCtx.fill();
+                }
+                fxCtx.restore();
+            }
+
+            for (let i = fxParticles.length - 1; i >= 0; i--) {
+                const p = fxParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.12;
+                p.alpha -= p.decay;
+                if (p.alpha <= 0) {
+                    fxParticles.splice(i, 1);
+                    continue;
+                }
+                fxCtx.save();
+                fxCtx.globalAlpha = p.alpha;
+                fxCtx.fillStyle = p.color;
+                fxCtx.beginPath();
+                fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                fxCtx.fill();
+                fxCtx.restore();
+            }
+
+            for (let i = fxCoins.length - 1; i >= 0; i--) {
+                const c = fxCoins[i];
+                if (c.delay > 0) {
+                    c.delay--;
+                    continue;
+                }
+                c.t += c.speed;
+                const t = Math.min(1, c.t);
+                const invT = 1 - t;
+
+                const x = invT * invT * c.startX + 2 * invT * t * c.cpX + t * t * c.targetX;
+                const y = invT * invT * c.startY + 2 * invT * t * c.cpY + t * t * c.targetY;
+
+                fxCtx.save();
+                fxCtx.translate(x, y);
+                fxCtx.scale(Math.max(0.2, Math.abs(Math.cos(c.spin + c.t * 14))), 1);
+                fxCtx.fillStyle = '#facc15';
+                fxCtx.beginPath();
+                fxCtx.arc(0, 0, c.r, 0, Math.PI * 2);
+                fxCtx.fill();
+                fxCtx.lineWidth = 2;
+                fxCtx.strokeStyle = '#fef9c3';
+                fxCtx.stroke();
+                fxCtx.restore();
+
+                if (c.t >= 1) {
+                    if (i % 4 === 0) sound.playCoinCollect();
+                    fxCoins.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animateFxLoop);
+        }
+
+        function startSpin() {
+            if (isSpinning) return;
+            sound.init();
+
+            if (walletCoins <= 0 || currentBet <= 0) {
+                resultMainTextEl.textContent = '⚠️ HẾT XU! BẤM "+1.000 XU FREE" HOẶC "CỨU TRỢ" ĐỂ TIẾP TỤC!';
+                resultMainTextEl.className = 'text-sm md:text-base font-extrabold text-rose-400 animate-bounce';
+                return;
+            }
+
+            const betAmount = Math.min(walletCoins, currentBet);
+            const wasAllIn = betAmount === walletCoins;
+
+            saveWallet(walletCoins - betAmount, true);
+            isSpinning = true;
+            winOverlayEl.classList.add('hidden');
+            winOverlayEl.classList.remove('flex');
+            loseOverlayEl.classList.add('hidden');
+            loseOverlayEl.classList.remove('flex');
+
+            if (wasAllIn) {
+                sound.playAllInSiren();
+                resultMainTextEl.textContent = `🔥 ĐÃ ALL-IN ${betAmount.toLocaleString('vi-VN')} XU VÀO CỬA ${selectedGate}! 🔥`;
+                resultMainTextEl.className = 'text-sm md:text-base font-black text-rose-400';
+            } else {
+                resultMainTextEl.textContent = `⚡ ĐANG QUAY PHÁN QUYẾT (${betAmount.toLocaleString('vi-VN')} XU)...`;
+                resultMainTextEl.className = 'text-sm md:text-base font-extrabold text-amber-300';
+            }
+            resultSubTextEl.textContent = 'Vòng quay đang phán quyết...';
+
+            const outcome = decideSpinOutcome(selectedGate);
+            const targetSliceAngle = (outcome.targetIndex + outcome.subSliceOffset) * SLICE_ANGLE;
+            const desiredModAngle = ((-Math.PI / 2 - targetSliceAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+            const currentModAngle = ((wheelAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+
+            let deltaAngle = desiredModAngle - currentModAngle;
+            if (deltaAngle < 0) deltaAngle += Math.PI * 2;
+
+            const extraSpins = (6 + Math.floor(Math.random() * 2)) * Math.PI * 2;
+            const startAngle = wheelAngle;
+            const totalRotation = extraSpins + deltaAngle;
+            const duration = wasAllIn ? 3000 : 2400;
+            const startTime = performance.now();
+
+            function stepWheel(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                const easeOut = 1 - Math.pow(1 - progress, 4);
+                wheelAngle = startAngle + totalRotation * easeOut;
+
+                const pointerRelAngle = ((-Math.PI / 2 - wheelAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+                const currentSliceIdx = Math.floor(pointerRelAngle / SLICE_ANGLE);
+                if (currentSliceIdx !== lastTickIndex) {
+                    lastTickIndex = currentSliceIdx;
+                    sound.playTick(0.85 + (1 - progress) * 0.5);
+                }
+
+                drawWheel(false);
+
+                if (progress < 1) {
+                    requestAnimationFrame(stepWheel);
+                } else {
+                    finishSpin(outcome, betAmount);
+                }
+            }
+
+            requestAnimationFrame(stepWheel);
+        }
+
+        function finishSpin(outcome, betAmount) {
+            isSpinning = false;
+            streakHistory.push(outcome.landedType);
+            renderStreakHistory();
+
+            if (outcome.isWin) {
+                consecutiveWins++;
+                consecutiveLosses = 0;
+                const multiplier = outcome.landedType === 'GOLD' ? 10 : 2.2;
+                const payout = Math.round(betAmount * multiplier);
+
+                saveWallet(walletCoins + payout, true);
+                drawWheel(true);
+                triggerMassiveWinEffects(payout, outcome.landedType);
+
+                resultPromptBoxEl.className = 'mt-2 w-full max-w-sm bg-gradient-to-r from-amber-900/90 via-yellow-900/90 to-amber-900/90 border-2 border-yellow-300 rounded-xl px-4 py-2.5 text-center shadow-[0_0_30px_rgba(250,204,21,0.6)]';
+                resultMainTextEl.textContent = `🎉 THẮNG LỚN +${payout.toLocaleString('vi-VN')} XU!`;
+                resultMainTextEl.className = 'text-sm md:text-base font-black text-yellow-300';
+                resultSubTextEl.textContent = 'Cầu đang rất đỏ, xông lên ngay!';
+            } else {
+                consecutiveLosses++;
+                consecutiveWins = 0;
+                drawWheel(false);
+                triggerLoseEffects(betAmount);
+
+                resultPromptBoxEl.className = 'mt-2 w-full max-w-sm bg-slate-950/90 border border-rose-900 rounded-xl px-4 py-2.5 text-center';
+                resultMainTextEl.textContent = `Trượt ô ${outcome.landedType === 'RED' ? 'ĐỎ' : (outcome.landedType === 'BLACK' ? 'ĐEN' : 'HOÀNG KIM')} (-${betAmount.toLocaleString('vi-VN')} Xu)`;
+                resultMainTextEl.className = 'text-sm font-bold text-rose-400';
+                resultSubTextEl.textContent = 'Suýt trúng! Bấm gỡ lại ngay ván sau!';
+            }
+        }
+
+        function selectGate(gate) {
+            if (isSpinning) return;
+            sound.init();
+            sound.playTick(1.2);
+            selectedGate = gate;
+
+            const gateNames = {
+                RED: 'ĐANG CHỌN: 🔴 CỬA ĐỎ (X2.2)',
+                BLACK: 'ĐANG CHỌN: ⚫ CỬA ĐEN (X2.2)',
+                GOLD: 'ĐANG CHỌN: 👑 HOÀNG KIM (X10)'
+            };
+            selectedGateBadgeEl.textContent = gateNames[gate];
+
+            document.querySelectorAll('.gate-btn').forEach((btn) => {
+                const g = btn.getAttribute('data-gate');
+                if (g === gate) {
+                    btn.classList.add('ring-4', 'ring-amber-300', 'scale-[1.02]');
+                } else {
+                    btn.classList.remove('ring-4', 'ring-amber-300', 'scale-[1.02]');
+                }
+            });
+
+            drawWheel(false);
+        }
+
+        document.querySelectorAll('.gate-btn').forEach((btn) => {
+            btn.addEventListener('click', () => selectGate(btn.getAttribute('data-gate')));
+        });
+
+        document.querySelectorAll('.bet-chip').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (isSpinning) return;
+                sound.init();
+                sound.playTick(1.1);
+                const action = btn.getAttribute('data-bet');
+                if (action === 'add-100') currentBet = Math.min(walletCoins, currentBet + 100);
+                else if (action === 'add-500') currentBet = Math.min(walletCoins, currentBet + 500);
+                else if (action === 'half') currentBet = Math.max(10, Math.floor(walletCoins * 0.5));
+                else if (action === 'double') currentBet = Math.min(walletCoins, currentBet * 2);
+                updateWalletAndBetUI();
+            });
+        });
+
+        document.getElementById('clearBetBtn').addEventListener('click', () => {
+            if (isSpinning) return;
+            sound.init();
+            currentBet = Math.min(walletCoins, 100);
+            updateWalletAndBetUI();
+        });
+
+        document.getElementById('allInBtn').addEventListener('click', () => {
+            if (isSpinning) return;
+            sound.init();
+            if (walletCoins <= 0) saveWallet(walletCoins + 1000, true);
+            currentBet = walletCoins;
+            updateWalletAndBetUI();
+            startSpin();
+        });
+
+        document.getElementById('spinBtn').addEventListener('click', startSpin);
+
+        document.getElementById('continueWinBtn').addEventListener('click', () => {
+            winOverlayEl.classList.add('hidden');
+            winOverlayEl.classList.remove('flex');
+        });
+
+        document.getElementById('continueLoseBtn').addEventListener('click', () => {
+            loseOverlayEl.classList.add('hidden');
+            loseOverlayEl.classList.remove('flex');
+        });
+
+        document.getElementById('freeRechargeBtn').addEventListener('click', () => {
+            sound.init();
+            sound.playCoinCollect();
+            saveWallet(walletCoins + 1000, true);
+            currentBet = Math.max(currentBet, Math.min(walletCoins, 500));
+            updateWalletAndBetUI();
+            walletCardEl.classList.add('scale-105');
+            setTimeout(() => walletCardEl.classList.remove('scale-105'), 150);
+        });
+
+        document.getElementById('bailoutBtn').addEventListener('click', () => {
+            sound.init();
+            sound.playCoinCollect();
+            saveWallet(walletCoins + 2000, true);
+            currentBet = walletCoins;
+            updateWalletAndBetUI();
+            walletCardEl.classList.add('scale-105');
+            setTimeout(() => walletCardEl.classList.remove('scale-105'), 150);
+        });
+
+        document.getElementById('backLobbyBtn').addEventListener('click', () => {
+            saveWallet(walletCoins, true);
+            window.location.href = 'sanhcho.html';
+        });
+
+        document.getElementById('goBanCaBtn').addEventListener('click', () => {
+            saveWallet(walletCoins, true);
+            window.location.href = 'banca.html';
+        });
+
+        document.getElementById('soundBtn').addEventListener('click', () => {
+            sound.init();
+            sound.enabled = !sound.enabled;
+            document.getElementById('soundText').textContent = sound.enabled ? 'BẬT' : 'TẮT';
+        });
+
+        window.onload = function () {
+            walletCoins = loadWallet();
+            currentBet = Math.min(walletCoins, 500);
+            updateWalletAndBetUI();
+            renderStreakHistory();
+            selectGate('RED');
+            animateFxLoop();
+        };
+    </script>
+</body>
+</html>
