@@ -1,0 +1,26 @@
+{
+  "name": "Cyber Royal Arcade - Bắn Cá & Đỏ Đen",
+  "short_name": "Cyber Arcade",
+  "description": "Mini game bắn cá và đỏ đen chơi trên PC, Android và iPhone.",
+  "id": "./index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050b1b",
+  "theme_color": "#050b1b",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

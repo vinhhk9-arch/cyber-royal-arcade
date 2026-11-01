@@ -1,0 +1,85 @@
+/* Mobile-friendly UI + safe area support for all four HTML pages. */
+html { -webkit-text-size-adjust: 100%; }
+body { min-width: 0; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+#arcadeFullscreenBtn {
+  white-space: nowrap;
+  min-height: 36px;
+  min-width: 84px;
+  border: 1px solid rgba(103,232,249,.65);
+  border-radius: 11px;
+  background: rgba(8, 25, 50, .94);
+  color: #cffafe;
+  font: 800 12px/1.2 system-ui, sans-serif;
+  padding: 8px 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  cursor: pointer;
+  z-index: 80;
+}
+#arcadeFullscreenBtn:active { transform: scale(.96); }
+#arcadeFullscreenBtn:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+#gameStage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  overflow: hidden;
+  background: #020b18;
+  touch-action: none;
+}
+#gameStage #gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+/* Controls must be above canvas, including full-screen button. */
+#gameStage .game-topbar { z-index: 20; }
+#gameStage button { touch-action: manipulation; }
+@media (max-width: 640px) {
+  /* In the lobby and in the red/black mini-game we still allow normal vertical scroll. */
+  body:not(:has(#gameStage)) { overflow-x: clip; }
+  #wheelCanvas { max-width: calc(100vw - 32px); }
+  body:has(#winOverlay) #wheelCanvas {
+    width: min(330px, calc(100vw - 32px)) !important;
+    height: auto !important;
+    aspect-ratio: 1;
+  }
+  #luckyWheelModal > div, #syncGuideModal > div { max-width: calc(100vw - 20px); max-height: calc(100dvh - 24px); overflow-y: auto; }
+  #walletTrayBox { min-width: 0; }
+  #winOverlay > div, #loseOverlay > div { max-width: calc(100vw - 22px); padding: 16px; }
+  #winOverlayAmount, #loseOverlayAmount { overflow-wrap: anywhere; font-size: clamp(22px, 8vw, 36px); }
+}
+/* Compact game toolbar (virtual game canvas is at least 860px in mobile mode). */
+.arcade-mobile-playing #gameStage .game-topbar { top: 6px; left: 8px; right: 8px; column-gap: 6px; row-gap: 4px; }
+.arcade-mobile-playing #gameStage .game-topbar button { padding: 5px 9px; }
+.arcade-mobile-playing #gameStage #arcadeFullscreenBtn { padding: 5px 8px; min-height: 28px; min-width: 72px; }
+@media (prefers-reduced-motion: reduce) {
+  .portal-card, .all-in-btn, .win-strobe { animation: none !important; transition-duration: 0s !important; }
+}
+
+/* Touch comfort and notch/safe-area margins, shared by all game pages. */
+html { height: 100%; overscroll-behavior-y: none; }
+body { -webkit-text-size-adjust: 100%; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+#gameStage { will-change: transform; }
+#gameStage #gameCanvas { -webkit-touch-callout: none; }
+#arcadeFullscreenGuide {
+  position: fixed; inset: 0; z-index: 2147483647;
+  display: flex; justify-content: center; align-items: center;
+  background: rgba(0,0,0,.82); padding: max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom));
+  overflow-y: auto; color: #f8fafc; font-family: system-ui, sans-serif;
+}
+.arcade-guide-inner {
+  width: min(420px,100%); max-height: 95dvh; overflow-y: auto; background: #0b1730;
+  border: 1px solid #22d3ee; border-radius: 20px; padding: 24px;
+  box-shadow: 0 20px 65px rgba(0,0,0,.55); text-align: left; line-height: 1.6;
+}
+.arcade-guide-icon {font-size: 38px; text-align: center;}
+.arcade-guide-inner h2 {font-size: 21px; line-height: 1.3; color: #fde68a; font-weight: 900; margin: 7px 0 16px;}
+.arcade-guide-inner p {font-size: 15px; margin: 12px 0; color: #dbeafe;}
+.arcade-guide-inner button {width: 100%; background: #06b6d4; border: 0; border-radius: 12px; padding: 12px; font-weight: 800; margin-top: 12px; color: #042f2e;}
+@media (max-width: 600px) {
+  body:not(:has(#gameStage)) {padding-bottom: env(safe-area-inset-bottom);}
+  #arcadeFullscreenBtn { min-height: 42px; }
+  body:not(:has(#gameStage)) button, body:not(:has(#gameStage)) a {touch-action: manipulation;}
+  #wheelCanvas {display:block;}
+  #winOverlay, #loseOverlay {padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+}

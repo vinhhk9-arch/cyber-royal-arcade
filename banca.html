@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#050b1b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cyber Arcade">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Bắn Cá Siêu Thị 2D - Đấu Trường Đại Boss</title>
+    <link rel="stylesheet" href="tailwind.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Chakra+Petch:wght@500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #020b18;
+            font-family: 'Chakra Petch', sans-serif;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .led-font {
+            font-family: 'Orbitron', monospace;
+        }
+    </style>
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+    <div id="gameStage" class="relative w-full h-full overflow-hidden">
+
+    <!-- Thanh điều hướng, Cấp độ Đại dương & FPS -->
+    <div class="game-topbar absolute top-2 left-3 right-3 flex flex-wrap justify-between items-center gap-2 pointer-events-none z-10">
+        <!-- Trái: Điều hướng Sảnh Chờ / Đỏ Đen -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="backLobbyBtn" class="bg-slate-900/90 hover:bg-slate-800 border border-cyan-400/60 text-cyan-300 text-xs md:text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5">
+                🏠 SẢNH CHỜ
+            </button>
+            <button id="goDoDenBtn" class="bg-gradient-to-r from-rose-700 to-slate-900 hover:from-rose-600 hover:to-slate-800 border border-rose-400/60 text-amber-200 text-xs md:text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-1.5">
+                🎲 ĐỎ ĐEN
+            </button>
+            <div class="hidden xl:flex bg-slate-950/90 border border-amber-400/40 px-3 py-1.5 rounded-xl items-center gap-2 shadow-xl pointer-events-none">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-xs text-cyan-100 font-bold tracking-wide">
+                    Kỹ năng: <span class="text-sky-300 font-extrabold">[Q] Đóng Băng</span> • <span class="text-pink-400 font-extrabold">[W] Ngắm Laze</span> • <span class="text-yellow-300 font-extrabold">[E] Đạn Điện Ghim Tâm 20s</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Giữa: Thanh Cấp Độ & EXP Đại Dương -->
+        <div class="bg-slate-950/90 border border-cyan-400/50 px-3.5 py-1.5 rounded-xl flex items-center gap-3 shadow-xl min-w-[260px] md:min-w-[350px]">
+            <div class="flex items-center gap-1.5">
+                <span class="bg-gradient-to-br from-amber-400 to-orange-600 text-slate-950 font-black text-xs px-2 py-0.5 rounded-md led-font" id="stageLevelBadge">CẤP 1</span>
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between gap-2">
+                        <span id="stageNameText" class="text-xs font-extrabold text-amber-300 tracking-wide">VỊNH SAN HÔ</span>
+                        <span id="stageBonusText" class="text-[11px] font-bold text-emerald-400">+0% THƯỞNG XU</span>
+                    </div>
+                    <div class="w-32 md:w-44 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700 mt-0.5">
+                        <div id="expBarFill" class="h-full bg-gradient-to-r from-cyan-400 via-amber-300 to-rose-500 transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <span id="expText" class="text-[11px] text-cyan-200 font-bold led-font ml-auto">0/450 EXP</span>
+        </div>
+
+        <!-- Phải: Nút chức năng & Bộ đếm FPS -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <div class="bg-slate-950/90 border border-emerald-500/40 px-2.5 py-1.5 rounded-xl text-xs font-extrabold text-emerald-400 led-font shadow-lg">
+                <span id="fpsCounter">60</span> FPS
+            </div>
+            <button id="spawnBossTopBtn" class="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 border border-amber-300 text-white text-xs md:text-sm font-extrabold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95">
+                🐉 TRIỆU HỒI BOSS
+            </button>
+            <button id="arcadeFullscreenBtn" type="button" class="pointer-events-auto">⛶ Phóng to</button>
+            <button id="soundBtn" class="bg-slate-900/90 hover:bg-slate-800 border border-amber-400/50 text-amber-300 text-xs md:text-sm font-bold px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95">
+                🔊 ÂM THANH: <span id="soundText">BẬT</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Màn hình Canvas chính -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Nhúng 2 Module tách biệt: 1. Nhân vật Cá & Boss (fishes.js) | 2. Bộ máy Game & Vũ khí (game.js) -->
+    <script src="mobile.js"></script>
+    <script src="fishes.js"></script>
+    <script src="game.js"></script>
+    </div>
+</body>
+</html>
